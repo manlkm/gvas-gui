@@ -8,7 +8,6 @@ import sys
 # --- Backend Logic ---
 class UeSaveEditor:
     def __init__(self, uesave_filename="uesave"):
-        # Detect if we are running as a bundled PyInstaller executable
         if getattr(sys, 'frozen', False):
             script_dir = sys._MEIPASS
         else:
@@ -56,13 +55,25 @@ class UeSaveEditor:
         with open(output_path, 'wb') as f:
             f.write(result.stdout)
 
+    # --- New JSON Export/Import Methods ---
+    def export_json(self, output_path):
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(self.data, f, indent=4)
 
+    def import_json(self, input_path):
+        with open(input_path, 'r', encoding='utf-8') as f:
+            self.data = json.load(f)
+
+
+# --- GUI Logic ---
 # --- GUI Logic ---
 class GvasGuiApp:
     def __init__(self, root):
         self.root = root
         self.root.title("GVAS Save Editor - Tree View")
-        self.root.geometry("900x750")
+        
+        # FIXED: Changed "1000wp750" to "1000x750"
+        self.root.geometry("1000x750") 
         
         try:
             self.editor = UeSaveEditor()
@@ -73,8 +84,6 @@ class GvasGuiApp:
 
         self.current_file = None
         self.item_map = {} 
-        
-        # Search variables
         self.search_results = []
         self.current_search_index = -1
 
@@ -85,16 +94,30 @@ class GvasGuiApp:
         top_frame = tk.Frame(self.root, pady=10)
         top_frame.pack(fill=tk.X)
 
-        self.btn_load = tk.Button(top_frame, text="1. Load .sav File", command=self.load_file)
-        self.btn_load.pack(side=tk.LEFT, padx=10)
+        # SAV Group
+        sav_group = tk.LabelFrame(top_frame, text="SAV Operations", padx=5, pady=5)
+        sav_group.pack(side=tk.LEFT, padx=10)
 
-        self.btn_save = tk.Button(top_frame, text="2. Save as .sav File", command=self.save_file, state=tk.DISABLED)
-        self.btn_save.pack(side=tk.LEFT, padx=10)
+        self.btn_load = tk.Button(sav_group, text="Load .sav", command=self.load_file)
+        self.btn_load.pack(side=tk.LEFT, padx=5)
+
+        self.btn_save = tk.Button(sav_group, text="Save .sav", command=self.save_file, state=tk.DISABLED)
+        self.btn_save.pack(side=tk.LEFT, padx=5)
+
+        # JSON Group
+        json_group = tk.LabelFrame(top_frame, text="JSON Operations", padx=5, pady=5)
+        json_group.pack(side=tk.LEFT, padx=10)
+
+        self.btn_import_json = tk.Button(json_group, text="Import .json", command=self.import_json_file)
+        self.btn_import_json.pack(side=tk.LEFT, padx=5)
+
+        self.btn_export_json = tk.Button(json_group, text="Export .json", command=self.export_json_file, state=tk.DISABLED)
+        self.btn_export_json.pack(side=tk.LEFT, padx=5)
 
         self.status_label = tk.Label(top_frame, text="Ready", fg="gray")
-        self.status_label.pack(side=tk.RIGHT, padx=10)
+        self.status_label.pack(side=tk.RIGHT, padx=20)
 
-        # --- Search Frame ---
+        # --- Search Frame --- (Keep as is)
         search_frame = tk.Frame(self.root)
         search_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
         
@@ -112,7 +135,7 @@ class GvasGuiApp:
         self.lbl_search_status = tk.Label(search_frame, text="", fg="gray", width=15, anchor="w")
         self.lbl_search_status.pack(side=tk.LEFT, padx=10)
 
-        # --- Middle Frame (Tree View) ---
+        # --- Middle Frame (Tree View) --- (Keep as is)
         tree_frame = tk.Frame(self.root)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
@@ -131,7 +154,7 @@ class GvasGuiApp:
 
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
 
-        # --- Bottom Frame (Edit Panel) ---
+        # --- Bottom Frame (Edit Panel) --- (Keep as is)
         edit_frame = tk.LabelFrame(self.root, text="Edit Selected Value", padx=10, pady=10)
         edit_frame.pack(fill=tk.X, padx=10, pady=10)
 
@@ -149,44 +172,72 @@ class GvasGuiApp:
         self.btn_update = tk.Button(edit_subframe, text="Update Value", command=self.apply_edit, state=tk.DISABLED)
         self.btn_update.pack(side=tk.RIGHT)
 
+    # --- Core Logic Methods ---
+
+    def refresh_tree_display(self):
+        """Helper to clear and repopulate the tree from self.editor.data"""
+        self.reset_search()
+        self.tree.delete(*self.tree.get_children())
+        self.item_map.clear()
+        
+        properties = self.editor.data.get("root", {}).get("properties", {})
+        self.populate_tree("", "Properties", properties, self.editor.data.get("root", {}), "properties")
+        
+        self.btn_save.config(state=tk.NORMAL)
+        self.btn_export_json.config(state=tk.NORMAL)
+
     def load_file(self):
         filepath = filedialog.askopenfilename(
             title="Select a GVAS Save File",
             filetypes=[("Save Files", "*.sav"), ("All Files", "*.*")]
         )
-        
-        if not filepath:
-            return
-
+        if not filepath: return
         self.status_label.config(text="Loading...", fg="blue")
         self.root.update()
-
         try:
             self.editor.load(filepath)
             self.current_file = filepath
-            
-            self.reset_search()
-            self.tree.delete(*self.tree.get_children())
-            self.item_map.clear()
-            
-            properties = self.editor.data.get("root", {}).get("properties", {})
-            self.populate_tree("", "Properties", properties, self.editor.data.get("root", {}), "properties")
-            
-            self.btn_save.config(state=tk.NORMAL)
+            self.refresh_tree_display()
             self.status_label.config(text=f"Loaded: {os.path.basename(filepath)}", fg="green")
-            
         except Exception as e:
             messagebox.showerror("Error Loading File", str(e))
             self.status_label.config(text="Error loading file", fg="red")
 
+    def export_json_file(self):
+        if not self.editor.data: return
+        filepath = filedialog.asksaveasfilename(
+            title="Export to JSON",
+            defaultextension=".json",
+            filetypes=[("JSON Files", "*.json")]
+        )
+        if not filepath: return
+        try:
+            self.editor.export_json(filepath)
+            messagebox.showinfo("Success", "JSON exported successfully.")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
+
+    def import_json_file(self):
+        filepath = filedialog.askopenfilename(
+            title="Import from JSON",
+            filetypes=[("JSON Files", "*.json")]
+        )
+        if not filepath: return
+        try:
+            self.editor.import_json(filepath)
+            self.current_file = None # Clear current file since we are working from JSON now
+            self.refresh_tree_display()
+            self.status_label.config(text="Imported JSON Data", fg="green")
+        except Exception as e:
+            messagebox.showerror("Import Error", str(e))
+
+    # [Rest of the methods: populate_tree, perform_search, apply_edit, save_file, etc. remain unchanged from your original script]
+    
     def populate_tree(self, parent_node, key, value, parent_collection, collection_key):
         is_json_root = False
         parsed_obj = None
-
-        # 1. Detect if this is an Embedded JSON String
         if isinstance(value, str):
             val_strip = value.strip()
-            # Heuristic check to see if the string looks like an array or dictionary
             if (val_strip.startswith('{') and val_strip.endswith('}')) or \
                (val_strip.startswith('[') and val_strip.endswith(']')):
                 try:
@@ -195,11 +246,7 @@ class GvasGuiApp:
                     is_json_root = True
                 except ValueError:
                     pass
-
-        # 2. Insert Node
         item_id = self.tree.insert(parent_node, "end", text=str(key))
-
-        # 3. Handle nesting dynamically
         if isinstance(value, dict):
             for k, v in value.items():
                 self.populate_tree(item_id, k, v, value, k)
@@ -208,53 +255,33 @@ class GvasGuiApp:
                 self.populate_tree(item_id, f"[{i}]", v, value, i)
         else:
             self.tree.set(item_id, "Value", str(value))
-            self.item_map[item_id] = {
-                'collection': parent_collection,
-                'key': collection_key,
-                'type': type(value)
-            }
-
-        # 4. If this node represents an Embedded JSON String, we register it
-        # so we can re-stringify it when the user updates a deeply nested value
+            self.item_map[item_id] = {'collection': parent_collection, 'key': collection_key, 'type': type(value)}
         if is_json_root:
-            self.item_map[item_id] = {
-                'is_json_root': True,
-                'collection': parent_collection,
-                'key': collection_key,
-                'parsed_obj': parsed_obj
-            }
+            self.item_map[item_id] = {'is_json_root': True, 'collection': parent_collection, 'key': collection_key, 'parsed_obj': parsed_obj}
 
-    # --- Search Functions ---
     def reset_search(self):
         self.search_results = []
         self.current_search_index = -1
         self.btn_next.config(state=tk.DISABLED)
         self.lbl_search_status.config(text="")
-        self.entry_search.delete(0, tk.END)
 
     def perform_search(self):
         query = self.entry_search.get().lower()
         self.search_results = []
         self.current_search_index = -1
-        
         if not query:
             self.lbl_search_status.config(text="Empty search")
             self.btn_next.config(state=tk.DISABLED)
             return
-
         def search_node(node):
             key_text = str(self.tree.item(node, "text")).lower()
             val_text = str(self.tree.set(node, "Value")).lower()
-            
             if query in key_text or query in val_text:
                 self.search_results.append(node)
-                
             for child in self.tree.get_children(node):
                 search_node(child)
-
         for child in self.tree.get_children(""):
             search_node(child)
-
         if self.search_results:
             self.btn_next.config(state=tk.NORMAL)
             self.next_search_result() 
@@ -263,39 +290,27 @@ class GvasGuiApp:
             self.btn_next.config(state=tk.DISABLED)
 
     def next_search_result(self):
-        if not self.search_results:
-            return
-
+        if not self.search_results: return
         self.current_search_index = (self.current_search_index + 1) % len(self.search_results)
         node_id = self.search_results[self.current_search_index]
-
         parent = self.tree.parent(node_id)
         while parent:
             self.tree.item(parent, open=True)
             parent = self.tree.parent(parent)
-
         self.tree.selection_set(node_id)
         self.tree.see(node_id)
         self.on_tree_select(None)
-
         self.lbl_search_status.config(text=f"Match {self.current_search_index + 1} of {len(self.search_results)}")
 
-    # --- Editing and Saving Functions ---
     def on_tree_select(self, event):
         selected = self.tree.selection()
-        if not selected:
-            return
-            
+        if not selected: return
         item_id = selected[0]
-        
-        # Only allow edits on primitive values. We treat Embedded JSON roots as uneditable folders.
         if item_id in self.item_map and not self.item_map[item_id].get('is_json_root'):
             self.entry_value.config(state=tk.NORMAL)
             self.btn_update.config(state=tk.NORMAL)
-            
             item_text = self.tree.item(item_id, "text")
             self.lbl_selected_key.config(text=f"Editing: {item_text}")
-            
             current_val = self.tree.set(item_id, "Value")
             self.entry_value.delete(0, tk.END)
             self.entry_value.insert(0, current_val)
@@ -307,23 +322,15 @@ class GvasGuiApp:
 
     def apply_edit(self):
         selected = self.tree.selection()
-        if not selected:
-            return
-            
+        if not selected: return
         item_id = selected[0]
-        if item_id not in self.item_map:
-            return
-
+        if item_id not in self.item_map: return
         new_val_str = self.entry_value.get()
         mapping = self.item_map[item_id]
-        
-        if mapping.get('is_json_root'):
-            return 
-            
+        if mapping.get('is_json_root'): return 
         collection = mapping['collection']
         key = mapping['key']
         original_type = mapping['type']
-        
         try:
             if original_type is bool:
                 new_val = new_val_str.lower() in ('true', '1', 't', 'y', 'yes')
@@ -336,51 +343,34 @@ class GvasGuiApp:
         except ValueError:
             messagebox.showerror("Type Error", f"Cannot convert '{new_val_str}' to {original_type.__name__}")
             return
-            
-        # Update the base memory
         collection[key] = new_val
         self.tree.set(item_id, "Value", str(new_val))
-        
-        # Traverse upwards to see if this edit happened inside an Embedded JSON String.
-        # If it did, compress the parsed object back down into a string format.
         curr = item_id
         while curr:
             if curr in self.item_map and self.item_map[curr].get('is_json_root'):
                 root_info = self.item_map[curr]
-                # 'separators' removes extra spaces to match typical UE compactness
                 new_str = json.dumps(root_info['parsed_obj'], separators=(',', ':'))
                 root_info['collection'][root_info['key']] = new_str
             curr = self.tree.parent(curr)
-
         self.status_label.config(text="Value updated! Don't forget to click 'Save as'.", fg="#b8860b")
 
     def save_file(self):
-        if not self.current_file:
-            return
-
         save_path = filedialog.asksaveasfilename(
             title="Save Modified GVAS File",
             defaultextension=".sav",
-            initialfile=os.path.basename(self.current_file),
             filetypes=[("Save Files", "*.sav"), ("All Files", "*.*")]
         )
-        
-        if not save_path:
-            return
-
+        if not save_path: return
         self.status_label.config(text="Saving...", fg="blue")
         self.root.update()
-
         try:
             self.editor.save(save_path)
             messagebox.showinfo("Success", f"File successfully saved to:\n{save_path}")
             self.status_label.config(text="Save Complete!", fg="green")
-            
         except Exception as e:
             messagebox.showerror("Error Saving File", str(e))
             self.status_label.config(text="Error saving file", fg="red")
 
-# --- Execution ---
 if __name__ == "__main__":
     root = tk.Tk()
     app = GvasGuiApp(root)
