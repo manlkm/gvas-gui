@@ -11,7 +11,7 @@ python -m venv .venv
 source .venv/Scripts/activate
 
 # Install dependency
-pip install -r requirements.txt
+pip install -r requirements.txt # optional
 
 # Run the GUI Loader
 python gvas_gui.py
