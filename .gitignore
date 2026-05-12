@@ -1,0 +1,38 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# --- Virtual Environment ---
+venv/
+.venv/
+env/
+
+# --- PyInstaller ---
+*.spec
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.swp
+*.sav~
+*~
+
+# --- Project Specific ---
+# The uesave binary is downloaded separately (not part of source)
+uesave
+uesave.exe
+
+# --- Logs / Temp ---
+*.log
+*.tmp

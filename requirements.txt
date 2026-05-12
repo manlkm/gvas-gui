@@ -1,0 +1,6 @@
+# No external pip dependencies are required for this project.
+# The following modules used in gvas_gui.py are part of the Python Standard Library:
+# - tkinter (GUI)
+# - subprocess (Running uesave)
+# - json (Data parsing)
+# - os / sys (File path management)
