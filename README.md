@@ -8,6 +8,7 @@ A Python-based graphical user interface (GUI) for editing Unreal Engine GVAS (`.
 * **Deep Search**: Quickly find specific keys or values across the entire save file.
 * **In-Place Editing**: Modify primitive values (strings, integers, floats, booleans) directly within the interface.
 * **Embedded JSON Support**: Automatically detects, parses, and re-compresses JSON strings stored inside save properties.
+* **JSON Import/Export**: Export the entire save structure to a `.json` file for bulk editing and import it back seamlessly.
 * **Cross-Platform Logic**: Designed to work on Windows and other OS environments where the `uesave` tool is available.
 
 ## Requirements
@@ -18,6 +19,9 @@ A Python-based graphical user interface (GUI) for editing Unreal Engine GVAS (`.
     * **Credits**: This tool relies on the excellent work of [trumank/uesave-rs](https://github.com/trumank/uesave-rs).
 
 ## How to Use
+
+> [!IMPORTANT]
+> **ALWAYS backup your original `.sav` files** before attempting to edit or replace them. Modifying save data can lead to corruption if handled incorrectly.
 
 For Windows users: 
 * **Double-click** the `uesavegui.bat` file to launch the application.
