@@ -19,8 +19,12 @@ A Python-based graphical user interface (GUI) for editing Unreal Engine GVAS (`.
 
 ## How to Use
 
-### Method A (Recommended)
-* **Double-click** the `uesavegui.bat`/`uesavegui.sh` file to launch the application.
+For Windows users: 
+* **Double-click** the `uesavegui.bat` file to launch the application.
+
+For Linux/macOS users:
+* You will need to run `chmod +x uesavegui.sh` in the terminal once to allow it to run as a program.
+* **Double-click** the `uesavegui.sh` file to launch the application.
 
 ### Method B (Manual)
 1.  **Setup**: Place `gvas_gui.py` and the `uesave` executable in the same folder.
