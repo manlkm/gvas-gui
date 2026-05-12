@@ -16,7 +16,7 @@ A Python-based graphical user interface (GUI) for editing Unreal Engine GVAS (`.
 1.  **Python 3.x**: Ensure Python is installed on your system.
 2.  **uesave**: This GUI acts as a wrapper for the `uesave` command-line utility.
     * You must have the `uesave` executable in the same directory as the script.
-    * **Credits**: This tool relies on the excellent work of [trumank/uesave-rs](https://github.com/trumank/uesave-rs).
+    * **Credits**: This tool relies on the excellent work of [trumank/uesave](https://github.com/trumank/uesave).
 
 ## How to Use
 
