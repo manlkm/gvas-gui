@@ -28,10 +28,6 @@ desktop.ini
 *.sav~
 *~
 
-# --- Project Specific ---
-# The uesave binary is downloaded separately (not part of source)
-uesave
-uesave.exe
 
 # --- Logs / Temp ---
 *.log
