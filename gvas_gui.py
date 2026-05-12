@@ -10,10 +10,8 @@ class UeSaveEditor:
     def __init__(self, uesave_filename="uesave"):
         # Detect if we are running as a bundled PyInstaller executable
         if getattr(sys, 'frozen', False):
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
             script_dir = sys._MEIPASS
         else:
-            # Normal Python execution
             script_dir = os.path.dirname(os.path.abspath(__file__))
         
         if os.name == 'nt' and not uesave_filename.endswith('.exe'):
@@ -182,8 +180,26 @@ class GvasGuiApp:
             self.status_label.config(text="Error loading file", fg="red")
 
     def populate_tree(self, parent_node, key, value, parent_collection, collection_key):
+        is_json_root = False
+        parsed_obj = None
+
+        # 1. Detect if this is an Embedded JSON String
+        if isinstance(value, str):
+            val_strip = value.strip()
+            # Heuristic check to see if the string looks like an array or dictionary
+            if (val_strip.startswith('{') and val_strip.endswith('}')) or \
+               (val_strip.startswith('[') and val_strip.endswith(']')):
+                try:
+                    parsed_obj = json.loads(val_strip)
+                    value = parsed_obj
+                    is_json_root = True
+                except ValueError:
+                    pass
+
+        # 2. Insert Node
         item_id = self.tree.insert(parent_node, "end", text=str(key))
-        
+
+        # 3. Handle nesting dynamically
         if isinstance(value, dict):
             for k, v in value.items():
                 self.populate_tree(item_id, k, v, value, k)
@@ -196,6 +212,16 @@ class GvasGuiApp:
                 'collection': parent_collection,
                 'key': collection_key,
                 'type': type(value)
+            }
+
+        # 4. If this node represents an Embedded JSON String, we register it
+        # so we can re-stringify it when the user updates a deeply nested value
+        if is_json_root:
+            self.item_map[item_id] = {
+                'is_json_root': True,
+                'collection': parent_collection,
+                'key': collection_key,
+                'parsed_obj': parsed_obj
             }
 
     # --- Search Functions ---
@@ -262,7 +288,8 @@ class GvasGuiApp:
             
         item_id = selected[0]
         
-        if item_id in self.item_map:
+        # Only allow edits on primitive values. We treat Embedded JSON roots as uneditable folders.
+        if item_id in self.item_map and not self.item_map[item_id].get('is_json_root'):
             self.entry_value.config(state=tk.NORMAL)
             self.btn_update.config(state=tk.NORMAL)
             
@@ -290,6 +317,9 @@ class GvasGuiApp:
         new_val_str = self.entry_value.get()
         mapping = self.item_map[item_id]
         
+        if mapping.get('is_json_root'):
+            return 
+            
         collection = mapping['collection']
         key = mapping['key']
         original_type = mapping['type']
@@ -307,8 +337,21 @@ class GvasGuiApp:
             messagebox.showerror("Type Error", f"Cannot convert '{new_val_str}' to {original_type.__name__}")
             return
             
+        # Update the base memory
         collection[key] = new_val
         self.tree.set(item_id, "Value", str(new_val))
+        
+        # Traverse upwards to see if this edit happened inside an Embedded JSON String.
+        # If it did, compress the parsed object back down into a string format.
+        curr = item_id
+        while curr:
+            if curr in self.item_map and self.item_map[curr].get('is_json_root'):
+                root_info = self.item_map[curr]
+                # 'separators' removes extra spaces to match typical UE compactness
+                new_str = json.dumps(root_info['parsed_obj'], separators=(',', ':'))
+                root_info['collection'][root_info['key']] = new_str
+            curr = self.tree.parent(curr)
+
         self.status_label.config(text="Value updated! Don't forget to click 'Save as'.", fg="#b8860b")
 
     def save_file(self):
