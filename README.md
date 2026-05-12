@@ -41,21 +41,3 @@ A Python-based graphical user interface (GUI) for editing Unreal Engine GVAS (`.
 
 This project is a GUI wrapper. The heavy lifting of parsing and rebuilding the GVAS format is handled by:
 * **uesave**: [https://github.com/trumank/uesave](for windows/macos/linux users)
-## Step to run the GVAS GUI Loader
-```bash
-# Create virtual python environment first
-python -m venv .venv
-
-# Switch to the virtual environment
-#For Windows (cmd)
-.venv\Scripts\activate
-
-#For Linux / MacOS
-source .venv/Scripts/activate
-
-# Install dependency
-pip install -r requirements.txt # optional
-
-# Run the GUI Loader
-python gvas_gui.py
-```
