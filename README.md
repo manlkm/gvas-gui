@@ -40,4 +40,4 @@ A Python-based graphical user interface (GUI) for editing Unreal Engine GVAS (`.
 ## Credits
 
 This project is a GUI wrapper. The heavy lifting of parsing and rebuilding the GVAS format is handled by:
-* **uesave**: [https://github.com/trumank/uesave](for windows/macos/linux users)
+* **uesave**: [https://github.com/trumank/uesave] (for windows/macos/linux users)
